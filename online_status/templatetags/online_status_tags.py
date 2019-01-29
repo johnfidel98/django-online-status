@@ -1,11 +1,12 @@
 from datetime import timedelta
+
 from django import template
 from django.conf import settings
-from django.utils import timezone
-from django.core.cache import cache
 from django.contrib.sessions.models import Session
-from online_status.status import status_for_user
-from online_status.conf import online_status_settings as config
+from django.core.cache import cache
+from django.utils import timezone
+from online_status import settings as config
+from online_status.status import status_for_user, status_for_allusers, STATUS
 
 register = template.Library()
 
@@ -20,39 +21,54 @@ def online_users(limit=None):
         now = timezone.now()
 
         expire_delta = timedelta(
-            0, settings.SESSION_COOKIE_AGE - config.TIME_OFFLINE
-        )
+            0, settings.SESSION_COOKIE_AGE - config.TIME_OFFLINE)
         sessions = Session.objects.filter(
-            expire_date__gte=now + expire_delta
-        ).values_list('session_key', flat=True)
+            expire_date__gte=now + expire_delta).values_list(
+                'session_key', flat=True)
 
-        onlineanonymusers = filter(
-            lambda x: x is not None,
-            [cache.get(config.CACHE_PREFIX_ANONYM_USER % session_key, None)
-             for session_key in sessions]
-        )
+        onlineanonymusers = [
+            cache.get(config.CACHE_PREFIX_ANONYM_USER % session_key, None)
+            for session_key in sessions
+        ]
 
-        onlineusers = [item
-                       for item in cache.get(config.CACHE_USERS, [])
-                       if item.status in (0, 1) and item.session in sessions]
+        onlineusers = [
+            item for item in cache.get(config.CACHE_USERS, [])
+            if item.status in (STATUS.idle, STATUS.online) and item.session in sessions
+        ]
 
         if onlineanonymusers and limit:
             onlineanonymusers = onlineanonymusers[:limit]
 
     if onlineusers and limit:
         onlineusers = onlineusers[:limit]
-    return {'onlineanonymusers': onlineanonymusers,
-            'onlineusers': onlineusers, }
+
+    return {
+        'onlineanonymusers': onlineanonymusers,
+        'onlineusers': onlineusers,
+    }
+
+
+@register.inclusion_tag('online_status/logged_users.html')
+def logged_users(limit=50):
+    """Renders a list of OnlineStatus instances"""
+    loggedusers = status_for_allusers()
+    # for key, data in loggedusers.items():
+    #     print("Key: %s, Data: %s" % (key, data["status"]))
+    return {
+        'loggedusers': loggedusers,
+    }
 
 
 @register.inclusion_tag('online_status/user_status.html')
+def user_status_tag(user):
+    """Renders an OnlineStatus for User with UI"""
+    status = status_for_user(user)
+    return {
+        'onlinestatus': status,
+    }
+
+
+@register.simple_tag()
 def user_status(user):
     """Renders an OnlineStatus instance for User"""
-    status = status_for_user(user)
-    return {'onlinestatus': status, }
-
-
-@register.inclusion_tag('online_status/user_status_tag.html')
-def user_status_tag(user):
-    status = status_for_user(user)
-    return {'onlinestatus': status, }
+    return status_for_user(user)

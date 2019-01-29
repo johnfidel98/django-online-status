@@ -1,37 +1,32 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.core.cache import cache
+from django.utils.deprecation import MiddlewareMixin
+from online_status.status import OnlineStatus, refresh_users_list
+from django.conf import settings
+from online_status import settings as config
+from importlib import import_module
 
-from online_status.conf import online_status_settings as config
-from online_status.status import refresh_user, refresh_users_list, OnlineStatus
+
+engine = import_module(settings.SESSION_ENGINE)
 
 
-class OnlineStatusMiddleware(object):
-    """Cache OnlineStatus instance for an authenticated User"""
+class OnlineStatusMiddleware(MiddlewareMixin):
+    """Cache OnlineStatus instance for user sessions"""
 
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        self.set_status(request)
-
-        response = self.get_response(request)
-
-        return response
-
-    def set_status(self, request):
+    def process_request(self, request):
         if request.user.is_authenticated:
-            onlinestatus = cache.get(
-                config.CACHE_PREFIX_USER % request.user.pk)
+            key = config.CACHE_PREFIX_USER % request.user.pk
         elif not config.ONLY_LOGGED_USERS:
-            onlinestatus = cache.get(
-                config.CACHE_PREFIX_ANONYM_USER % request.session.session_key)
+            key = config.CACHE_PREFIX_ANONYM_USER % request.session.session_key
         else:
             return
-
+        onlinestatus = cache.get(key)
         if not onlinestatus:
             onlinestatus = OnlineStatus(request)
-
-        refresh_user(request)
+        else:
+            if config.PREVENT_CONCURRENT_LOGIN and request.session.session_key != onlinestatus.session:
+                session = engine.SessionStore(session_key=onlinestatus.session)
+                session.delete()
+            onlinestatus.set_online(request)
+        cache.set(key, onlinestatus, config.TIME_OFFLINE)
         refresh_users_list(request, updated=onlinestatus)
+        return  # TODO cachar logout request para borrar key

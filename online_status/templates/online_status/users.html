@@ -1,0 +1,11 @@
+{% extends BASE_TEMPLATE|default:'online_status/base.html' %}
+{% load i18n online_status_tags %}
+
+{% block ousers_inner %}
+    <h4>{% trans "Users online" %}</h4>
+    {% online_users 30 %}
+    <h4>{% trans "Status for all users" %}</h4>
+    <p>{% logged_users %}</p>
+    <h4>{% trans "My status" %} ("{{ user.username }}")</h4>
+    <p>{% user_status user %}</p>
+{% endblock ousers_inner %}

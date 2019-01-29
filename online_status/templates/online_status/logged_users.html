@@ -1,0 +1,5 @@
+<dl class="online_users">
+{% for user, data in loggedusers.items %}
+	<dt class="user">{{ user }}</dt><dd class="status">{{ data.status }}</dd>
+{% endfor %}
+</dl>

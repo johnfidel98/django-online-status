@@ -6,6 +6,9 @@ from online_status.status import OnlineStatus
 
 class OnlineStatusJSONEncoder(JSONEncoder):
     def default(self, obj):
+        print("---")
+        print(type(obj))
+        print("---")
         if isinstance(obj, OnlineStatus):
             seen = obj.seen.isoformat()
             # TODO adapt to custom user model
@@ -16,4 +19,5 @@ class OnlineStatusJSONEncoder(JSONEncoder):
             }
             return {'user': user, 'seen': seen, 'status': obj.status, }
         else:
-            raise TypeError(repr(obj) + " is not JSON serializable")
+            pass
+            # raise TypeError(repr(obj) + " is not JSON serializable")

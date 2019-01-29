@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-with open(os.path.join(os.path.dirname(__file__), 'README')) as readme:
+with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
     README = readme.read()
 
 with open(os.path.join(os.path.dirname(__file__), 'UNLICENSE')) as license:
@@ -12,7 +12,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-online-status',
-    version='0.1.0',
+    version='0.1.2',
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
@@ -21,6 +21,7 @@ setup(
     author='Jakub Zalewski',
     author_email='zalew7@gmail.com',
     url='https://github.com/hovel/django-online-status',
+    install_requires=['django', 'user-agents'],
     classifiers=[
         'Development Status :: Beta',
         'Environment :: Web Environment',

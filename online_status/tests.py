@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.test.utils import override_settings
-from online_status.conf import online_status_settings as config
+from online_status import settings as config
 from online_status.utils import OnlineStatusJSONEncoder
 
 

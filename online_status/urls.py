@@ -1,8 +1,7 @@
 from django.conf.urls import url
-from online_status.views import test, example, users
+from online_status.views import users  # , users_json
 
 urlpatterns = [
-    url(r'^test/$', test, name='online_users_test'),
-    url(r'^example/$', example, name='online_users_example'),
     url(r'^$', users, name='online_users'),
+    # url(r'^json/$', users_json, name='online_users_json'),  # To review
 ]

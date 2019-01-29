@@ -1,8 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from django.utils import timezone
+
 from django.core.cache import cache
-from online_status.conf import online_status_settings as config
+from django.utils import timezone
+from online_status import settings as config
+from django.utils.translation import ugettext_lazy as _
+from django.utils.functional import SimpleLazyObject
+from django.contrib.auth import get_user_model
+from user_agents import parse
+# from collections import namedtuple
+# import json
+
+_STATUS_TYPE = {
+    'offline': _("Offline"),
+    'idle': _("Idle"),
+    'online': _("Online"),
+    'unknown': _("Unknown"),
+}
+STATUS = lambda: None
+STATUS.__dict__ = _STATUS_TYPE
 
 
 class OnlineStatus(object):
@@ -10,40 +26,24 @@ class OnlineStatus(object):
 
     def __init__(self, request):
         self.user = request.user
-        # 0 - idle, 1 - active
-        self.status = 1
+        self.status = STATUS.online
         self.seen = timezone.now()
         self.ip = request.META['REMOTE_ADDR']
+        self.host = request.META['REMOTE_HOST']
+        self.agent = parse(request.META['HTTP_USER_AGENT'])
         self.session = request.session.session_key
 
     def set_idle(self):
-        self.status = 0
+        self.status = STATUS.idle
 
-    def set_active(self, request):
-        self.status = 1
+    def set_online(self, request):
+        self.status = STATUS.online
         self.seen = timezone.now()
-        # Can change if operating from multiple browsers
         self.session = request.session.session_key
-        # Can change if operating from multiple browsers
-        self.ip = request.META['REMOTE_ADDR']
 
-
-def refresh_user(request):
-    """Sets or updates user's online status"""
-    if request.user.is_authenticated:
-        key = config.CACHE_PREFIX_USER % request.user.pk
-    elif not config.ONLY_LOGGED_USERS:
-        key = config.CACHE_PREFIX_ANONYM_USER % request.session.session_key
-    else:
-        return
-    onlinestatus = cache.get(key)
-    if not onlinestatus:
-        onlinestatus = OnlineStatus(request)
-    else:
-        onlinestatus.set_active(request)
-    cache.set(key, onlinestatus, config.TIME_OFFLINE)
-    return onlinestatus
-    # self.refresh_users_list(user=self.user)
+    def __repr__(self):
+        return "%s, %s, %s, %s, %s, %s, %s" % (self.user, self.status, self.seen,
+                                               self.ip, self.host, self.agent, self.session)
 
 
 def refresh_users_list(request, **kwargs):
@@ -84,7 +84,20 @@ def refresh_users_list(request, **kwargs):
 
 def status_for_user(user):
     """Return status for user, duh?"""
-    if user.is_authenticated:
+    if isinstance(user, SimpleLazyObject):
         key = config.CACHE_PREFIX_USER % user.pk
         return cache.get(key)
-    return None
+    return STATUS.offline
+
+
+def status_for_allusers():
+    """Return status for all registered users, duh?"""
+    loggedusers = {}
+    for user in get_user_model().objects.all():
+        key = config.CACHE_PREFIX_USER % user.pk
+        onlinestatus = cache.get(key)
+        loggedusers[user.username] = {
+            "status": onlinestatus.status if onlinestatus else STATUS.offline,
+            "data": onlinestatus
+        }
+    return loggedusers
