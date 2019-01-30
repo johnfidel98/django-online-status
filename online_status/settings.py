@@ -2,8 +2,8 @@ from django.conf import settings
 
 
 # timeouts
-TIME_IDLE = getattr(settings, 'USERS_ONLINE_TIME_IDLE', 60 * 5)  # default to 5 min
-TIME_OFFLINE = getattr(settings, 'USERS_ONLINE_TIME_OFFLINE', 60 * 10)  # default to 10 min
+TIME_IDLE = getattr(settings, 'USERS_ONLINE_TIME_IDLE', 60 * 10)  # default to 10 min
+TIME_OFFLINE = getattr(settings, 'USERS_ONLINE_TIME_OFFLINE', 60 * 30)  # default to 30 min
 
 # cache settings
 CACHE_USERS = getattr(settings, 'USERS_ONLINE_CACHE_USERS', 'online_users')
