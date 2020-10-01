@@ -29,12 +29,21 @@ class OnlineStatus(object):
         self.status = STATUS.online
         self.seen = timezone.now()
         self.ip = request.META['REMOTE_ADDR']
-        self.host = request.META['REMOTE_HOST']
+        self.host = request.META['REMOTE_HOST'] if 'REMOTE_HOST' in request.META.keys() else self.get_client_ip(request)
         self.agent = parse(request.META['HTTP_USER_AGENT'])
         self.session = request.session.session_key
 
     def set_idle(self):
         self.status = STATUS.idle
+    
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        self.ip = ip
+        return 'Unknown Host'
 
     def set_online(self, request):
         self.status = STATUS.online
